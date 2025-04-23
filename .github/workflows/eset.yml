@@ -50,6 +50,7 @@ on:
         - main
         - test
         default: main
+
 jobs:
   Linux:
     runs-on: ubuntu-latest
@@ -73,7 +74,6 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
           
-          
           if [[ ${ACCOUNT} -ne 0 && ${KEY} -ne 0 ]]; then
             python3 main.py --auto-detect-browser --account --email-api ${MAIL} --skip-update-check --no-logo --disable-progress-bar --disable-logging --repeat ${ACCOUNT}
             python3 main.py --auto-detect-browser ${KEY_TYPE} --email-api ${MAIL} --skip-update-check --no-logo --disable-progress-bar --disable-logging --repeat ${KEY}
@@ -90,6 +90,15 @@ jobs:
             echo -e "\nKey:" >> $GITHUB_STEP_SUMMARY
             cat ./*KEYS.txt >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Upload generated files
+        uses: actions/upload-artifact@v3
+        with:
+          name: generated-results
+          path: |
+            ESET-KeyGen/*ACCOUNTS.txt
+            ESET-KeyGen/*KEYS.txt
+
   macOS:
     runs-on: macos-latest
     steps:
@@ -126,6 +135,15 @@ jobs:
             echo -e "\nKey:" >> $GITHUB_STEP_SUMMARY
             cat ./*KEYS.txt >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Upload generated files
+        uses: actions/upload-artifact@v3
+        with:
+          name: generated-results
+          path: |
+            ESET-KeyGen/*ACCOUNTS.txt
+            ESET-KeyGen/*KEYS.txt
+
   Windows:
     runs-on: windows-latest
     steps:
@@ -161,3 +179,11 @@ jobs:
               echo "`nKey:" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
               Get-Content -Path ./*KEYS.txt | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
           }
+
+      - name: Upload generated files
+        uses: actions/upload-artifact@v3
+        with:
+          name: generated-results
+          path: |
+            ESET-KeyGen\*ACCOUNTS.txt
+            ESET-KeyGen\*KEYS.txt
