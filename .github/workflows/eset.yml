@@ -1,4 +1,4 @@
-name: Generator
+name: ESET Key Generator
 
 on:
   workflow_dispatch:
@@ -50,10 +50,15 @@ on:
         - main
         - test
         default: main
+
 jobs:
   Linux:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
       - name: Generate key
         if: github.event.inputs.os == 'Linux'
         run: |
@@ -73,7 +78,6 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
           
-          
           if [[ ${ACCOUNT} -ne 0 && ${KEY} -ne 0 ]]; then
             python3 main.py --auto-detect-browser --account --email-api ${MAIL} --skip-update-check --no-logo --disable-progress-bar --disable-logging --repeat ${ACCOUNT}
             python3 main.py --auto-detect-browser ${KEY_TYPE} --email-api ${MAIL} --skip-update-check --no-logo --disable-progress-bar --disable-logging --repeat ${KEY}
@@ -90,10 +94,9 @@ jobs:
             echo -e "\nKey:" >> $GITHUB_STEP_SUMMARY
             cat ./*KEYS.txt >> $GITHUB_STEP_SUMMARY
           fi
-         
-      - name: Save results to file
-        run: |
-          echo "## Workflow Results" >> results.md
+
+          # Save results to file
+          echo "## Workflow Results" > results.md
           echo "" >> results.md
           if [ -f ./*ACCOUNTS.txt ]; then
             echo "### Accounts" >> results.md
@@ -106,15 +109,24 @@ jobs:
             echo "" >> results.md
           fi
 
-      - name: Upload results as artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload results
+        if: github.event.inputs.os == 'Linux'
+        uses: actions/upload-artifact@v4
         with:
-          name: eset-results
-          path: results.md
+          name: eset-results-${{ github.event.inputs.os }}
+          path: |
+            results.md
+            ./*ACCOUNTS.txt
+            ./*KEYS.txt
           retention-days: 1
+
   macOS:
     runs-on: macos-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
       - name: Generate key
         if: github.event.inputs.os == 'macOS'
         run: |
@@ -122,8 +134,9 @@ jobs:
           KEY=${{ github.event.inputs.key }}
           MAIL=${{ github.event.inputs.mail }}
           KEY_TYPE=${{ github.event.inputs.key_type }}
+          BRANCH=${{ github.event.inputs.branch }}
 
-          git clone https://github.com/rzc0d3r/ESET-KeyGen.git
+          git clone -b ${BRANCH} https://github.com/rzc0d3r/ESET-KeyGen.git
           cd ESET-KeyGen
           
           # Setup env
@@ -148,10 +161,9 @@ jobs:
             echo -e "\nKey:" >> $GITHUB_STEP_SUMMARY
             cat ./*KEYS.txt >> $GITHUB_STEP_SUMMARY
           fi
-          
-      - name: Save results to file
-        run: |
-          echo "## Workflow Results" >> results.md
+
+          # Save results to file
+          echo "## Workflow Results" > results.md
           echo "" >> results.md
           if [ -f ./*ACCOUNTS.txt ]; then
             echo "### Accounts" >> results.md
@@ -164,15 +176,24 @@ jobs:
             echo "" >> results.md
           fi
 
-      - name: Upload results as artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload results
+        if: github.event.inputs.os == 'macOS'
+        uses: actions/upload-artifact@v4
         with:
-          name: eset-results
-          path: results.md
+          name: eset-results-${{ github.event.inputs.os }}
+          path: |
+            results.md
+            ./*ACCOUNTS.txt
+            ./*KEYS.txt
           retention-days: 1
+
   Windows:
     runs-on: windows-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
       - name: Generate key
         if: github.event.inputs.os == 'Windows'
         run: |
@@ -180,8 +201,9 @@ jobs:
           $KEY="${{ github.event.inputs.key }}"
           $MAIL="${{ github.event.inputs.mail }}"
           $KEY_TYPE="${{ github.event.inputs.key_type }}"
+          $BRANCH="${{ github.event.inputs.branch }}"
 
-          git clone https://github.com/rzc0d3r/ESET-KeyGen.git
+          git clone -b $BRANCH https://github.com/rzc0d3r/ESET-KeyGen.git
           cd ESET-KeyGen
 
           # Setup dependencies
@@ -205,25 +227,28 @@ jobs:
               echo "`nKey:" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
               Get-Content -Path ./*KEYS.txt | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
           }
-          # Добавьте это в конец каждого job (Linux, macOS, Windows)
-      - name: Save results to file
-        run: |
-          echo "## Workflow Results" >> results.md
-          echo "" >> results.md
-          if [ -f ./*ACCOUNTS.txt ]; then
-            echo "### Accounts" >> results.md
-            cat ./*ACCOUNTS.txt >> results.md
-            echo "" >> results.md
-          fi
-          if [ -f ./*KEYS.txt ]; then
-            echo "### Keys" >> results.md
-            cat ./*KEYS.txt >> results.md
-            echo "" >> results.md
-          fi
 
-      - name: Upload results as artifact
-        uses: actions/upload-artifact@v3
+          # Save results to file
+          echo "## Workflow Results" | Out-File -FilePath results.md
+          echo "" | Out-File -FilePath results.md -Append
+          if (Test-Path ./*ACCOUNTS.txt) {
+              echo "### Accounts" | Out-File -FilePath results.md -Append
+              Get-Content -Path ./*ACCOUNTS.txt | Out-File -FilePath results.md -Append
+              echo "" | Out-File -FilePath results.md -Append
+          }
+          if (Test-Path ./*KEYS.txt) {
+              echo "### Keys" | Out-File -FilePath results.md -Append
+              Get-Content -Path ./*KEYS.txt | Out-File -FilePath results.md -Append
+              echo "" | Out-File -FilePath results.md -Append
+          }
+
+      - name: Upload results
+        if: github.event.inputs.os == 'Windows'
+        uses: actions/upload-artifact@v4
         with:
-          name: eset-results
-          path: results.md
+          name: eset-results-${{ github.event.inputs.os }}
+          path: |
+            results.md
+            ./*ACCOUNTS.txt
+            ./*KEYS.txt
           retention-days: 1
